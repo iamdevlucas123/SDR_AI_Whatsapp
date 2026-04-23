@@ -77,7 +77,31 @@ TWILIO_AUTH_TOKEN=your_token
 DATABASE_URL=your_db_url
 ```
 
-### 4. Run the project
+### 4. Start PostgreSQL locally
+
+```
+docker compose up -d db
+```
+
+### 5. Generate the Prisma client
+
+```
+npm run prisma:generate
+```
+
+### 6. Apply the initial migration
+
+```
+npm run prisma:migrate -- --name init
+```
+
+For production deploys, use:
+
+```
+npm run prisma:deploy
+```
+
+### 7. Run the project
 
 ```
 npm run dev
