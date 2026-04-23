@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { generateAIResponse } from '../services/openai.service';
-import { saveLead } from '../services/lead.service';
+import { findLeadByPhone, saveLead, updateLeadQualification } from '../services/lead.service';
 import { sendMessage } from '../services/whatsapp.service';
 
 export async function handleIncomingMessage(req: Request, res: Response) {
@@ -12,7 +12,13 @@ export async function handleIncomingMessage(req: Request, res: Response) {
       return res.status(400).json({ error: 'Invalid webhook payload' });
     }
 
-    await saveLead(from);
+    const lead = await findLeadByPhone(from);
+
+    if (!lead) {
+      await saveLead({ phone: from, status: 'new' });
+    }
+
+    await updateLeadQualification(from, message);
 
     const aiResponse = await generateAIResponse(message);
     await sendMessage(from, aiResponse);
