@@ -1,148 +1,237 @@
-# SDR AI WhatsApp – Lead Qualification Bot
+# SDR AI WhatsApp
 
-An AI-powered WhatsApp assistant designed to automate conversations, qualify leads, and simulate a real Sales Development Representative (SDR) workflow using OpenAI.
+API em Node.js + TypeScript para atendimento e qualificacao de leads via WhatsApp, usando Twilio, OpenAI, Prisma e PostgreSQL.
 
----
+## Stack
 
-## 🚀 Overview
+- Node.js
+- TypeScript
+- Express
+- OpenAI API
+- Twilio WhatsApp Sandbox / API
+- Prisma
+- PostgreSQL
+- Docker
 
-This project integrates WhatsApp messaging with AI to create an automated sales assistant capable of:
+## O que este projeto faz
 
-* Answering user questions in real-time
-* Qualifying leads through structured conversations
-* Storing interactions and lead data
-* Simulating real-world SDR workflows
+- recebe mensagens do WhatsApp via webhook
+- cria ou atualiza leads no banco
+- qualifica o lead de forma inicial
+- envia a mensagem para a OpenAI
+- responde o usuario pelo WhatsApp via Twilio
 
----
+## Endpoints
 
-## 🧠 Features
+- `GET /health`
+- `POST /webhook/whatsapp`
 
-* AI-powered responses using OpenAI
-* WhatsApp integration via webhook
-* Lead qualification logic (new, qualified, lost)
-* Conversation history tracking
-* Modular and scalable backend architecture
+## Variaveis de ambiente
 
----
+Use o arquivo `.env.example` como base.
 
-## 🏗️ Tech Stack
+Exemplo:
 
-* **Backend:** Node.js, TypeScript, Express
-* **AI:** OpenAI API
-* **Database:** PostgreSQL + Prisma
-* **Messaging:** Twilio WhatsApp API
-* **DevOps:** Docker
-
----
-
-## 📁 Project Structure
-
-```
-src/
-  routes/
-  controllers/
-  services/
-  prompts/
-  utils/
-  config/
-  database/
+```env
+NODE_ENV=development
+PORT=3001
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
+TWILIO_ACCOUNT_SID=AC...
+TWILIO_AUTH_TOKEN=...
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
+DATABASE_URL=postgresql://user:password@localhost:5433/sdr_ai
 ```
 
----
+## Rodando localmente
 
-## ⚙️ Setup
+### 1. Instale as dependencias
 
-### 1. Clone the repository
-
-```
-git clone https://github.com/your-username/sdr-ai-whatsapp.git
-cd sdr-ai-whatsapp
-```
-
-### 2. Install dependencies
-
-```
+```bash
 npm install
 ```
 
-### 3. Configure environment variables
+### 2. Suba o banco local
 
-Create a `.env` file:
-
-```
-PORT=3000
-OPENAI_API_KEY=your_key
-TWILIO_ACCOUNT_SID=your_sid
-TWILIO_AUTH_TOKEN=your_token
-DATABASE_URL=your_db_url
-```
-
-### 4. Start PostgreSQL locally
-
-```
+```bash
 docker compose up -d db
 ```
 
-### 5. Generate the Prisma client
+No setup local atual:
 
-```
+- Postgres no host: `localhost:5433`
+- API local: `localhost:3001`
+- API no Docker: `localhost:3018`
+
+### 3. Gere o Prisma Client
+
+```bash
 npm run prisma:generate
 ```
 
-### 6. Apply the initial migration
+### 4. Aplique as migracoes
 
-```
-npm run prisma:migrate -- --name init
-```
-
-For production deploys, use:
-
-```
+```bash
 npm run prisma:deploy
 ```
 
-### 7. Run the project
+### 5. Rode a API
 
-```
+```bash
 npm run dev
 ```
 
----
+### 6. Teste o health check
 
-## 🔄 Workflow
+```bash
+curl.exe -i http://localhost:3001/health
+```
 
-1. User sends a message via WhatsApp
-2. Webhook receives the message
-3. Backend processes and sends it to OpenAI
-4. AI generates a response based on SDR prompt
-5. Response is sent back via WhatsApp
-6. Data is stored for tracking and analysis
+## Testando o webhook localmente
 
----
+```bash
+curl.exe -i -X POST http://localhost:3001/webhook/whatsapp -H "Content-Type: application/x-www-form-urlencoded" -d "Body=Oi, quero automatizar meu atendimento&From=whatsapp:+5511999999999"
+```
 
-## 💡 Use Cases
+Se a rota existir, voce nao deve mais receber `404`.
 
-* Lead qualification automation
-* Customer support chatbot
-* Sales funnel optimization
+Se receber `500`, normalmente o erro sera um destes:
 
----
+- `OPENAI_API_KEY` invalida
+- credenciais do Twilio invalidas
+- banco nao migrado
 
-## 📌 Future Improvements
+## Twilio Sandbox + ngrok
 
-* Dashboard for lead management
-* CRM integration
-* Advanced analytics
-* Multi-language support
+### 1. Rode a API local
 
----
+```bash
+npm run dev
+```
 
-## 📄 License
+### 2. Abra um tunel com ngrok
 
-This project is for educational and portfolio purposes.
+```bash
+ngrok http 3001
+```
 
----
+### 3. Copie a URL HTTPS gerada
 
-## 👨‍💻 Author
+Exemplo:
+
+```text
+https://abc123.ngrok-free.app
+```
+
+### 4. Configure no Twilio Sandbox
+
+No campo `When a message comes in`, use:
+
+```text
+https://abc123.ngrok-free.app/webhook/whatsapp
+```
+
+### 5. Entre no sandbox
+
+No WhatsApp, envie o codigo `join ...` que o Twilio mostrar para o numero do sandbox.
+
+### 6. Teste a conversa
+
+Envie uma mensagem real no WhatsApp, por exemplo:
+
+```text
+Oi, quero automatizar meu atendimento
+```
+
+## Rodando com Docker
+
+### Build
+
+```bash
+docker compose build app
+```
+
+### Subir a API e o banco
+
+```bash
+docker compose up -d
+```
+
+### Testar a API no Docker
+
+```bash
+curl.exe -i http://localhost:3018/health
+```
+
+## Deploy no Render
+
+### 1. Envie o projeto para o GitHub
+
+Nao suba o `.env`.
+
+### 2. Crie um banco PostgreSQL no Render
+
+Copie o `External Database URL`.
+
+### 3. Crie um Web Service no Render
+
+- Runtime: `Docker`
+- Root Directory: deixe vazio se o projeto estiver na raiz do repo
+- Health Check Path: `/health`
+
+### 4. Configure as variaveis de ambiente
+
+```env
+NODE_ENV=production
+PORT=3001
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
+TWILIO_ACCOUNT_SID=AC...
+TWILIO_AUTH_TOKEN=...
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
+DATABASE_URL=postgresql://...
+```
+
+### 5. Rode as migracoes em producao
+
+```bash
+npm run prisma:deploy
+```
+
+### 6. Teste a URL publica
+
+```text
+https://seu-servico.onrender.com/health
+```
+
+### 7. Aponte o webhook do Twilio para producao
+
+```text
+https://seu-servico.onrender.com/webhook/whatsapp
+```
+
+## Scripts uteis
+
+```bash
+npm run dev
+npm run build
+npm run start
+npm run prisma:generate
+npm run prisma:migrate
+npm run prisma:deploy
+npm run prisma:dev
+```
+
+## Estado atual
+
+O projeto ja possui:
+
+- endpoint de health check
+- webhook de WhatsApp
+- persistencia inicial de leads com Prisma
+- container Docker funcional para a API
+- deploy funcional no Render
+
+## Autor
 
 Lucas Borges
